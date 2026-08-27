@@ -400,6 +400,7 @@
     <PRIResource Include="Strings\pt-br\SponsorPage.resw" />
     <PRIResource Include="Strings\pt\Common.resw" />
     <PRIResource Include="Strings\pt\CopyLocationPage.resw" />
+    <PRIResource Include="Strings\pt\MainWindowToolBarPage.resw" />
     <PRIResource Include="Strings\pt\ProgressPage.resw" />
     <PRIResource Include="Strings\ro\Common.resw" />
     <PRIResource Include="Strings\ro\CopyLocationPage.resw" />
