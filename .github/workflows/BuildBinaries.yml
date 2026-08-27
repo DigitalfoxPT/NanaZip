@@ -24,7 +24,7 @@ jobs:
     - name: Clear local NuGet cache (workaround for failed restores on windows-latest)
       run: dotnet nuget locals all --clear
     - name: Build
-      run: MSBuild -binaryLogger:Output\BuildAllTargets.binlog -m BuildAllTargets.proj
+      run: MSBuild -binaryLogger:Output\BuildAllTargets.binlog -m -property:NanaZipBuildNumberDate=2026-08-05 BuildAllTargets.proj
     - name: Create signed custom installer
       shell: powershell
       run: |
@@ -61,6 +61,9 @@ jobs:
         Import-Certificate `
           -FilePath $CerPath `
           -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
+        Import-Certificate `
+          -FilePath $CerPath `
+          -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
 
         $SignedBundle = Join-Path $InstallerPath "NanaZipCustom_$Version.msixbundle"
         Copy-Item -LiteralPath $Bundle.FullName -Destination $SignedBundle
@@ -92,6 +95,7 @@ jobs:
         Remove-Item -LiteralPath $PfxPath -Force
         Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($Certificate.Thumbprint)" -Force
         Remove-Item -LiteralPath "Cert:\CurrentUser\TrustedPeople\$($Certificate.Thumbprint)" -Force
+        Remove-Item -LiteralPath "Cert:\CurrentUser\Root\$($Certificate.Thumbprint)" -Force
     - name: Upload signed custom installer
       uses: actions/upload-artifact@v7
       with:

@@ -767,6 +767,9 @@
     <PRIResource Include="Strings\pt-br\MainWindowToolBarPage.resw">
       <Filter>Strings\pt-br</Filter>
     </PRIResource>
+    <PRIResource Include="Strings\pt\MainWindowToolBarPage.resw">
+      <Filter>Strings\pt</Filter>
+    </PRIResource>
     <PRIResource Include="Strings\pt-br\SponsorPage.resw">
       <Filter>Strings\pt-br</Filter>
     </PRIResource>
