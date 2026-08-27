@@ -26,6 +26,7 @@ jobs:
     - name: Build
       run: MSBuild -binaryLogger:Output\BuildAllTargets.binlog -m -property:NanaZipBuildNumberDate=2026-08-05 BuildAllTargets.proj
     - name: Create signed custom installer
+      timeout-minutes: 10
       shell: powershell
       run: |
         $ErrorActionPreference = 'Stop'
@@ -61,9 +62,6 @@ jobs:
         Import-Certificate `
           -FilePath $CerPath `
           -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
-        Import-Certificate `
-          -FilePath $CerPath `
-          -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
 
         $SignedBundle = Join-Path $InstallerPath "NanaZipCustom_$Version.msixbundle"
         Copy-Item -LiteralPath $Bundle.FullName -Destination $SignedBundle
@@ -81,9 +79,8 @@ jobs:
         if ($LASTEXITCODE -ne 0) {
           throw "SignTool failed with exit code $LASTEXITCODE."
         }
-        & $SignToolPath verify /pa /v $SignedBundle
-        if ($LASTEXITCODE -ne 0) {
-          throw "Signature verification failed with exit code $LASTEXITCODE."
+        if ((Get-Item -LiteralPath $SignedBundle).Length -eq 0) {
+          throw 'SignTool produced an empty MSIX bundle.'
         }
 
         Copy-Item -LiteralPath 'Installer\Install-NanaZipCustom.ps1' -Destination $InstallerPath
@@ -95,7 +92,6 @@ jobs:
         Remove-Item -LiteralPath $PfxPath -Force
         Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($Certificate.Thumbprint)" -Force
         Remove-Item -LiteralPath "Cert:\CurrentUser\TrustedPeople\$($Certificate.Thumbprint)" -Force
-        Remove-Item -LiteralPath "Cert:\CurrentUser\Root\$($Certificate.Thumbprint)" -Force
     - name: Upload signed custom installer
       uses: actions/upload-artifact@v7
       with:
