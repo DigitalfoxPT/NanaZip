@@ -23,26 +23,23 @@
         Grid.Column="0"
         HorizontalAlignment="Left"
         Background="Transparent"
-        DefaultLabelPosition="Collapsed"
+        DefaultLabelPosition="Right"
         IsDynamicOverflowEnabled="False"
         IsOpen="False">
         <AppBarButton
           x:Name="AddButton"
-          Width="48"
           AutomationProperties.Name="[Add]"
           Click="AddButtonClick"
           Icon="Add"
           ToolTipService.ToolTip="[Add]" />
         <AppBarButton
           x:Name="ExtractButton"
-          Width="48"
           AutomationProperties.Name="[Extract]"
           Click="ExtractButtonClick"
           Icon="MoveToFolder"
           ToolTipService.ToolTip="[Extract]" />
         <AppBarButton
           x:Name="TestButton"
-          Width="48"
           AutomationProperties.Name="[Test]"
           Click="TestButtonClick"
           Icon="Accept"
@@ -50,14 +47,12 @@
         <AppBarSeparator />
         <AppBarButton
           x:Name="CopyButton"
-          Width="48"
           AutomationProperties.Name="[Copy]"
           Click="CopyButtonClick"
           Icon="Copy"
           ToolTipService.ToolTip="[Copy]" />
         <AppBarButton
           x:Name="MoveButton"
-          Width="48"
           AutomationProperties.Name="[Move]"
           Click="MoveButtonClick"
           ToolTipService.ToolTip="[Move]">
@@ -67,14 +62,12 @@
         </AppBarButton>
         <AppBarButton
           x:Name="DeleteButton"
-          Width="48"
           AutomationProperties.Name="[Delete]"
           Click="DeleteButtonClick"
           Icon="Delete"
           ToolTipService.ToolTip="[Delete]" />
         <AppBarButton
           x:Name="InfoButton"
-          Width="48"
           AutomationProperties.Name="[Info]"
           Click="InfoButtonClick"
           ToolTipService.ToolTip="[Info]">
@@ -85,29 +78,26 @@
         <AppBarSeparator />
         <AppBarButton
           x:Name="OptionsButton"
-          Width="48"
           AutomationProperties.Name="[Options]"
           Click="OptionsButtonClick"
           Icon="Setting"
           ToolTipService.ToolTip="[Options]" />
         <AppBarButton
           x:Name="BenchmarkButton"
-          Width="48"
           AutomationProperties.Name="[Benchmark]"
           Click="BenchmarkButtonClick"
           Icon="Play"
           ToolTipService.ToolTip="[Benchmark]" />
         <AppBarButton
           x:Name="AboutButton"
-          Width="48"
           AutomationProperties.Name="[About]"
           Click="AboutButtonClick"
           Icon="Help"
           ToolTipService.ToolTip="[About]" />
         <AppBarSeparator />
         <AppBarButton
+          x:Name="MoreButton"
           x:Uid="/NanaZip.Modern/MainWindowToolBarPage/MoreButton"
-          Width="48"
           AutomationProperties.Name="[More]"
           Click="MoreButtonClick"
           Icon="More"

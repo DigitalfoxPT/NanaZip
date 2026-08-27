@@ -1,6 +1,7 @@
 ﻿name: Build Binaries
 
 on:
+  workflow_dispatch:
   push:
     paths-ignore:
       - 'Documents/**'
@@ -24,10 +25,82 @@ jobs:
       run: dotnet nuget locals all --clear
     - name: Build
       run: MSBuild -binaryLogger:Output\BuildAllTargets.binlog -m BuildAllTargets.proj
+    - name: Create signed custom installer
+      shell: powershell
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        [xml]$Manifest = Get-Content -LiteralPath 'NanaZipPackage\Package.appxmanifest'
+        $Version = $Manifest.Package.Identity.Version
+        $Bundle = Get-ChildItem -LiteralPath 'Output\Binaries\AppPackages' -Recurse -Filter '*.msixbundle' |
+          Select-Object -First 1
+        if (-not $Bundle) {
+          throw 'The NanaZip MSIX bundle was not generated.'
+        }
+
+        $InstallerPath = Join-Path $PWD 'Output\NanaZipCustomInstaller'
+        New-Item -ItemType Directory -Path $InstallerPath -Force | Out-Null
+
+        $Certificate = New-SelfSignedCertificate `
+          -Type Custom `
+          -KeyUsage DigitalSignature `
+          -CertStoreLocation 'Cert:\CurrentUser\My' `
+          -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}') `
+          -Subject 'CN=DigitalfoxPT' `
+          -FriendlyName 'NanaZip Custom Package Signing' `
+          -KeyExportPolicy Exportable `
+          -HashAlgorithm SHA256 `
+          -NotAfter (Get-Date).AddYears(5)
+
+        $PasswordText = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
+        $Password = ConvertTo-SecureString -String $PasswordText -Force -AsPlainText
+        $PfxPath = Join-Path $env:RUNNER_TEMP 'NanaZipCustom.pfx'
+        $CerPath = Join-Path $InstallerPath 'NanaZipCustom.cer'
+        Export-PfxCertificate -Cert $Certificate -FilePath $PfxPath -Password $Password | Out-Null
+        Export-Certificate -Cert $Certificate -FilePath $CerPath | Out-Null
+        Import-Certificate `
+          -FilePath $CerPath `
+          -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
+
+        $SignedBundle = Join-Path $InstallerPath "NanaZipCustom_$Version.msixbundle"
+        Copy-Item -LiteralPath $Bundle.FullName -Destination $SignedBundle
+
+        $SignTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter 'signtool.exe' |
+          Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+          Sort-Object FullName -Descending |
+          Select-Object -First 1
+        if (-not $SignTool) {
+          throw 'SignTool was not found in the Windows SDK.'
+        }
+
+        $SignToolPath = $SignTool.FullName
+        & $SignToolPath sign /fd SHA256 /f $PfxPath /p $PasswordText $SignedBundle
+        if ($LASTEXITCODE -ne 0) {
+          throw "SignTool failed with exit code $LASTEXITCODE."
+        }
+        & $SignToolPath verify /pa /v $SignedBundle
+        if ($LASTEXITCODE -ne 0) {
+          throw "Signature verification failed with exit code $LASTEXITCODE."
+        }
+
+        Copy-Item -LiteralPath 'Installer\Install-NanaZipCustom.ps1' -Destination $InstallerPath
+        Copy-Item -LiteralPath 'Installer\Install.cmd' -Destination $InstallerPath
+        Copy-Item -LiteralPath 'Installer\Uninstall-NanaZipCustom.ps1' -Destination $InstallerPath
+        Copy-Item -LiteralPath 'Installer\Uninstall.cmd' -Destination $InstallerPath
+        Copy-Item -LiteralPath 'Installer\README.txt' -Destination $InstallerPath
+
+        Remove-Item -LiteralPath $PfxPath -Force
+        Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($Certificate.Thumbprint)" -Force
+        Remove-Item -LiteralPath "Cert:\CurrentUser\TrustedPeople\$($Certificate.Thumbprint)" -Force
+    - name: Upload signed custom installer
+      uses: actions/upload-artifact@v7
+      with:
+        name: NanaZip_Custom_Signed_Installer
+        path: Output/NanaZipCustomInstaller
     - name: Upload MSIX Bundle
       uses: actions/upload-artifact@v7
       with:
-        name: NanaZip_Mainline_ApplicationPackages
+        name: NanaZip_Custom_Unsigned_ApplicationPackages
         path: Output/Binaries/AppPackages
     - name: Upload Extension Package Installer
       uses: actions/upload-artifact@v7

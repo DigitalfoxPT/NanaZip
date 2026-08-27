@@ -345,10 +345,14 @@ namespace winrt::NanaZip::Modern::implementation
             winrt::AutomationProperties::SetName(
                 ToolBarButtons[i],
                 Resource);
+            ToolBarButtons[i].Label(Resource);
             winrt::ToolTipService::SetToolTip(
                 ToolBarButtons[i],
                 winrt::box_value(Resource));
         }
+
+        this->MoreButton().Label(
+            winrt::AutomationProperties::GetName(this->MoreButton()));
 
         this->m_DispatcherQueue =
             winrt::DispatcherQueue::GetForCurrentThread();
