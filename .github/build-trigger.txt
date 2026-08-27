@@ -1,0 +1,1 @@
+Trigger file for the NanaZip Custom installer validation workflow.
