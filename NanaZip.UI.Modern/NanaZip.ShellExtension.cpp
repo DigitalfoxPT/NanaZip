@@ -938,7 +938,7 @@ namespace NanaZip::ShellExtension
                 return E_NOTIMPL;
             }
 
-            return ::SHStrDupW(L"NanaZip Custom", ppszName);
+            return ::SHStrDupW(L"NanaZip", ppszName);
         }
 
         HRESULT STDMETHODCALLTYPE GetIcon(

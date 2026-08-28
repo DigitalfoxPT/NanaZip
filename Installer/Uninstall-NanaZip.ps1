@@ -17,18 +17,22 @@ if (-not (Test-Administrator))
     exit $Process.ExitCode
 }
 
-$Package = Get-AppxPackage -Name 'DigitalfoxPT.NanaZipCustom'
-if ($Package)
+$Packages = @(
+    Get-AppxPackage -Name 'BrunoFaria.NanaZip'
+    Get-AppxPackage -Name 'DigitalfoxPT.NanaZipCustom'
+) | Where-Object { $_ }
+
+if ($Packages)
 {
-    Write-Host 'A desinstalar o NanaZip Custom...' -ForegroundColor Cyan
-    $Package | Remove-AppxPackage
+    Write-Host 'A desinstalar o NanaZip...' -ForegroundColor Cyan
+    $Packages | Remove-AppxPackage
 }
 else
 {
-    Write-Host 'O NanaZip Custom não está instalado.' -ForegroundColor Yellow
+    Write-Host 'O NanaZip não está instalado.' -ForegroundColor Yellow
 }
 
-$CertificatePath = Join-Path $PSScriptRoot 'NanaZipCustom.cer'
+$CertificatePath = Join-Path $PSScriptRoot 'NanaZip.cer'
 if (Test-Path -LiteralPath $CertificatePath)
 {
     $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertificatePath)
@@ -38,9 +42,12 @@ if (Test-Path -LiteralPath $CertificatePath)
     if ($InstalledCertificate)
     {
         Remove-Item -LiteralPath $InstalledCertificate.PSPath -Force
-        Write-Host 'Certificado do NanaZip Custom removido.' -ForegroundColor Green
+        Write-Host 'Certificado do NanaZip removido.' -ForegroundColor Green
     }
 }
 
-Write-Host 'Desinstalação concluída.' -ForegroundColor Green
+Get-ChildItem -LiteralPath 'Cert:\LocalMachine\TrustedPeople' |
+    Where-Object { $_.Subject -eq 'CN=DigitalfoxPT' } |
+    Remove-Item -Force
 
+Write-Host 'Desinstalação concluída.' -ForegroundColor Green
