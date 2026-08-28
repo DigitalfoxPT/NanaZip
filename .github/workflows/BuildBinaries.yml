@@ -111,8 +111,12 @@ jobs:
         $ErrorActionPreference = 'Stop'
         $ReleaseTag = 'v6.5.1800.0-bf1'
 
-        & gh release view $ReleaseTag --repo $env:GITHUB_REPOSITORY 2>$null
-        if ($LASTEXITCODE -eq 0) {
+        $ErrorActionPreference = 'Continue'
+        & gh release view $ReleaseTag --repo $env:GITHUB_REPOSITORY *> $null
+        $ReleaseExists = $LASTEXITCODE -eq 0
+        $ErrorActionPreference = 'Stop'
+
+        if ($ReleaseExists) {
           Write-Host "Release $ReleaseTag already exists."
           exit 0
         }
