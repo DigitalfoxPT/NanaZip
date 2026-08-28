@@ -15,7 +15,21 @@ permissions:
   contents: write
 
 jobs:
+  update-release-notes:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/custom-6.5.1800.0' && contains(github.event.head_commit.message, '[release-notes-only]')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Update permanent release notes
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release edit v6.5.1800.0-bf1 \
+          --repo "$GITHUB_REPOSITORY" \
+          --notes-file Installer/ReleaseNotes-6.5.1800.0.md
+
   build:
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[release-notes-only]') }}
     runs-on: windows-latest
     env:
       POWERSHELL_TELEMETRY_OPTOUT: 1
@@ -110,6 +124,7 @@ jobs:
       run: |
         $ErrorActionPreference = 'Stop'
         $ReleaseTag = 'v6.5.1800.0-bf1'
+        $ReleaseNotesPath = Join-Path $PWD 'Installer\ReleaseNotes-6.5.1800.0.md'
 
         $ErrorActionPreference = 'Continue'
         & gh release view $ReleaseTag --repo $env:GITHUB_REPOSITORY *> $null
@@ -117,7 +132,13 @@ jobs:
         $ErrorActionPreference = 'Stop'
 
         if ($ReleaseExists) {
-          Write-Host "Release $ReleaseTag already exists."
+          & gh release edit $ReleaseTag `
+            --repo $env:GITHUB_REPOSITORY `
+            --notes-file $ReleaseNotesPath
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub release update failed with exit code $LASTEXITCODE."
+          }
+          Write-Host "Release $ReleaseTag already exists and its notes were updated."
           exit 0
         }
 
@@ -126,23 +147,6 @@ jobs:
           -Path 'Output\NanaZipInstaller\*' `
           -DestinationPath $ReleaseArchive `
           -CompressionLevel Optimal
-
-        $ReleaseNotesPath = Join-Path $env:RUNNER_TEMP 'NanaZip-Release-Notes.md'
-        @'
-        NanaZip 6.5.1800.0 baseado na versão estável oficial.
-
-        Alterações desta versão:
-        - Texto à direita dos principais ícones da barra de ferramentas.
-        - Remoção dos botões Testar, Desempenho e Patrocine o NanaZip.
-        - Botão Mais apresentado apenas com os três pontos.
-        - Aplicação publicada como NanaZip por Bruno Faria.
-        - Instalador assinado para Windows x64 e ARM64.
-
-        Instalação:
-        1. Extraia todos os ficheiros do ZIP.
-        2. Execute Install.cmd.
-        3. Aceite o pedido de Controlo de Conta de Utilizador.
-        '@ | Set-Content -LiteralPath $ReleaseNotesPath -Encoding UTF8
 
         & gh release create $ReleaseTag `
           $ReleaseArchive `
