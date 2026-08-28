@@ -11,6 +11,9 @@ on:
       - 'Documents/**'
       - '**/*.md'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -99,29 +102,57 @@ jobs:
       with:
         name: NanaZip_Signed_Installer
         path: Output/NanaZipInstaller
-    - name: Upload MSIX Bundle
+    - name: Publish permanent release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/custom-6.5.1800.0'
+      shell: powershell
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $ReleaseTag = 'v6.5.1800.0-bf1'
+
+        & gh release view $ReleaseTag --repo $env:GITHUB_REPOSITORY 2>$null
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "Release $ReleaseTag already exists."
+          exit 0
+        }
+
+        $ReleaseArchive = Join-Path $PWD 'Output\NanaZip_6.5.1800.0_Installer.zip'
+        Compress-Archive `
+          -Path 'Output\NanaZipInstaller\*' `
+          -DestinationPath $ReleaseArchive `
+          -CompressionLevel Optimal
+
+        $ReleaseNotesPath = Join-Path $env:RUNNER_TEMP 'NanaZip-Release-Notes.md'
+        @'
+        NanaZip 6.5.1800.0 baseado na versão estável oficial.
+
+        Alterações desta versão:
+        - Texto à direita dos principais ícones da barra de ferramentas.
+        - Remoção dos botões Testar, Desempenho e Patrocine o NanaZip.
+        - Botão Mais apresentado apenas com os três pontos.
+        - Aplicação publicada como NanaZip por Bruno Faria.
+        - Instalador assinado para Windows x64 e ARM64.
+
+        Instalação:
+        1. Extraia todos os ficheiros do ZIP.
+        2. Execute Install.cmd.
+        3. Aceite o pedido de Controlo de Conta de Utilizador.
+        '@ | Set-Content -LiteralPath $ReleaseNotesPath -Encoding UTF8
+
+        & gh release create $ReleaseTag `
+          $ReleaseArchive `
+          --repo $env:GITHUB_REPOSITORY `
+          --target $env:GITHUB_SHA `
+          --title 'NanaZip 6.5.1800.0' `
+          --notes-file $ReleaseNotesPath
+        if ($LASTEXITCODE -ne 0) {
+          throw "GitHub release creation failed with exit code $LASTEXITCODE."
+        }
+    - name: Upload build log after failure
       uses: actions/upload-artifact@v7
+      if: failure()
       with:
-        name: NanaZip_Unsigned_ApplicationPackages
-        path: Output/Binaries/AppPackages
-    - name: Upload Extension Package Installer
-      uses: actions/upload-artifact@v7
-      with:
-        name: NanaZip_Mainline_ExtensionPackageInstaller
-        path: Output/NanaZip.ExtensionPackage_*.exe
-    - name: Upload MSBuild Build Process Binary Log
-      uses: actions/upload-artifact@v7
-      if: '!cancelled()'
-      with:
-        name: NanaZip_Mainline_BuildBinaryLog
+        name: NanaZip_BuildBinaryLog
         path: Output/BuildAllTargets.binlog
-    - name: Upload Portable Binaries
-      uses: actions/upload-artifact@v7
-      with:
-        name: NanaZip_Mainline_PortableBinaries
-        path: Output/Binaries/Root/Binaries
-    - name: Upload Debug Symbols
-      uses: actions/upload-artifact@v7
-      with:
-        name: NanaZip_Mainline_DebugSymbols
-        path: Output/Binaries/Root/Symbols
+        if-no-files-found: ignore
