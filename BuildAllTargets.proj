@@ -16,19 +16,13 @@
     TaskName="NanaZip.Build.Tasks.RefreshProjectResources"
     AssemblyFile="$(MSBuildThisFileDirectory)NanaZip.Project\NanaZip.Build.Tasks.dll"/>
   <Target Name="RefreshVersion">
-    <Exec Command="git show -s --format=%25%25cs" ConsoleToMSBuild="true" IgnoreExitCode="true">
-      <Output TaskParameter="ExitCode" PropertyName="GitExitCode" />
-      <Output TaskParameter="ConsoleOutput" PropertyName="GitBuildNumberDate" />
-    </Exec>
     <PropertyGroup>
-      <NanaZipBuildNumberDate Condition="'$(GitExitCode)' == '0' and '$(GitBuildNumberDate)' != ''">$(GitBuildNumberDate)</NanaZipBuildNumberDate>
+      <NanaZipBuildNumberDate>2026-08-05</NanaZipBuildNumberDate>
+      <MileProjectVersion>6.5.1800.0</MileProjectVersion>
     </PropertyGroup>
     <RefreshProjectBuildNumberDate
       FilePath="$(MSBuildThisFileDirectory)NanaZip.Project\NanaZip.Project.Version.props"
       BuildNumberDate="$(NanaZipBuildNumberDate)" />
-    <PropertyGroup>
-      <MileProjectVersion>$(NanaZipMajorVersion).$(NanaZipMinorVersion).$([System.DateTime]::Parse('$(NanaZipBuildNumberDate)').Subtract($([System.DateTime]::Parse('$(NanaZipProjectCreationDate)'))).TotalDays).0</MileProjectVersion>
-    </PropertyGroup>
     <RefreshAppxManifestVersion
       FilePath="$(MSBuildThisFileDirectory)NanaZipPackage\Package.appxmanifest"
       Version="$(MileProjectVersion)" />

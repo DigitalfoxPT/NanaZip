@@ -24,7 +24,7 @@ jobs:
     - name: Clear local NuGet cache (workaround for failed restores on windows-latest)
       run: dotnet nuget locals all --clear
     - name: Build
-      run: MSBuild -binaryLogger:Output\BuildAllTargets.binlog -m -property:NanaZipBuildNumberDate=2026-08-05 BuildAllTargets.proj
+      run: MSBuild -binaryLogger:Output\BuildAllTargets.binlog -m BuildAllTargets.proj
     - name: Create signed custom installer
       timeout-minutes: 10
       shell: powershell
@@ -34,10 +34,12 @@ jobs:
         [xml]$Manifest = Get-Content -LiteralPath 'NanaZipPackage\Package.appxmanifest'
         $Version = $Manifest.Package.Identity.Version
         $Bundle = Get-ChildItem -LiteralPath 'Output\Binaries\AppPackages' -Recurse -Filter '*.msixbundle' |
+          Where-Object { $_.Name -notmatch '_Debug' } |
           Select-Object -First 1
         if (-not $Bundle) {
-          throw 'The NanaZip MSIX bundle was not generated.'
+          throw 'The NanaZip release MSIX bundle was not generated.'
         }
+        Write-Host "Selected release bundle: $($Bundle.FullName)"
 
         $InstallerPath = Join-Path $PWD 'Output\NanaZipCustomInstaller'
         New-Item -ItemType Directory -Path $InstallerPath -Force | Out-Null
