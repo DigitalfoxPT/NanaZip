@@ -1,7 +1,7 @@
 NanaZip
 =======
 
-Base: NanaZip 6.5.1800.0 estável
+Base: NanaZip 7.0.1832.0 estável
 Origem: https://github.com/M2Team/NanaZip
 Publicador: Bruno Faria
 Código: https://github.com/DigitalfoxPT/NanaZip

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * PROJECT:    NanaZip
  * FILE:       NanaZip.ShellExtension.cpp
  * PURPOSE:    Implementation for NanaZip Shell Extension

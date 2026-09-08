@@ -11,7 +11,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildThisFileDirectory)NanaZip.Project.Version.props" />
   <PropertyGroup>
-    <NanaZipBuildPreviewRelease Condition="'$(NanaZipBuildPreviewRelease)' == ''">true</NanaZipBuildPreviewRelease>
+    <NanaZipBuildPreviewRelease Condition="'$(NanaZipBuildPreviewRelease)' == ''">false</NanaZipBuildPreviewRelease>
     <NanaZipBuildWithSanitizers Condition="'$(NanaZipBuildWithSanitizers)' == ''">false</NanaZipBuildWithSanitizers>
   </PropertyGroup>
   <PropertyGroup>

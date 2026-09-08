@@ -1,6 +1,9 @@
 # NanaZip
 
-This branch is based on the stable NanaZip `6.5.1800.0` tag.
+This branch is based on the stable NanaZip `7.0.1832.0` tag.
+
+The upstream release is version `2609.1`. Stable mode is enabled by default, and
+the package version is pinned to `7.0.1832.0` regardless of the build date.
 
 ## Alterações desta compilação
 
@@ -9,7 +12,7 @@ This branch is based on the stable NanaZip `6.5.1800.0` tag.
 - Shows only the ellipsis icon for the More button.
 - Uses `NanaZip` as the visible application name and `Bruno Faria` as the publisher.
 - Uses the separate `BrunoFaria.NanaZip` MSIX identity.
-- Uses a separate shell extension CLSID and application execution aliases.
+- Uses a separate shell extension CLSID and retains the existing execution aliases.
 - Produces a self-signed MSIX bundle and installation helpers in GitHub Actions.
 
 The original NanaZip licenses, notices, and attribution are preserved.
