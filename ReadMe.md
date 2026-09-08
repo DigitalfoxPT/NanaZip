@@ -1,5 +1,10 @@
 ﻿# ![NanaZip](Assets/NanaZip.png) NanaZip
 
+This branch contains Bruno Faria's custom build of NanaZip 7.0.1832.0.
+See the [custom build documentation](Documents/CustomBuild.md) for its changes
+and installation instructions, or [download the custom release](https://github.com/DigitalfoxPT/NanaZip/releases/tag/v7.0.1832.0-bf1).
+The project information below describes the original NanaZip distribution.
+
 [![GitHub Actions Build Status](https://github.com/M2Team/NanaZip/actions/workflows/BuildBinaries.yml/badge.svg?branch=master&event=push)](https://github.com/M2Team/NanaZip/actions/workflows/BuildBinaries.yml?query=event%3Apush+branch%3Amaster)
 [![Total Downloads](https://img.shields.io/github/downloads/M2Team/NanaZip/total)](https://github.com/M2Team/NanaZip/releases)
 [![Rating](https://img.shields.io/endpoint?url=https%3A%2F%2Fmicrosoft-store-badge.fly.dev%2Fapi%2Frating%3FstoreId%3D9N8G7TSCL18R%26market%3DUS&style=flat&color=brightgreen)](https://www.microsoft.com/store/productId/9N8G7TSCL18R)

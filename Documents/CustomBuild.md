@@ -1,4 +1,4 @@
-# NanaZip
+# NanaZip custom build
 
 This branch is based on the stable NanaZip `7.0.1832.0` tag.
 
@@ -16,3 +16,11 @@ the package version is pinned to `7.0.1832.0` regardless of the build date.
 - Produces a self-signed MSIX bundle and installation helpers in GitHub Actions.
 
 The original NanaZip licenses, notices, and attribution are preserved.
+
+## Downloads and installation
+
+- [Custom release 7.0.1832.0](https://github.com/DigitalfoxPT/NanaZip/releases/tag/v7.0.1832.0-bf1)
+- [Release notes](../Installer/ReleaseNotes-7.0.1832.0.md)
+- [Installation and removal instructions](../Installer/README.txt)
+
+The previous custom release remains available in the GitHub release history.
