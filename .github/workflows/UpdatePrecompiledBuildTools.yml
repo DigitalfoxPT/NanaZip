@@ -8,6 +8,9 @@ on:
       - 'NanaZip.Build.Tasks/**'
       - '.github/workflows/UpdatePrecompiledBuildTools.yml'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -27,13 +30,31 @@ jobs:
     - name: Refresh the build number
       run: |
         MSBuild -target:RefreshVersion BuildAllTargets.proj
-        git commit -a -m "Refresh the build number for the precompiled build tools."
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        git diff --quiet --exit-code
+        switch ($LASTEXITCODE) {
+          0 { Write-Host "The build number is already up to date." }
+          1 {
+            git commit -a -m "Refresh the build number for the precompiled build tools."
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          default { exit $LASTEXITCODE }
+        }
     - name: Prepare the compiled build tools binaries
       run: |
         dotnet build --configuration Release NanaZip.Build.Tasks\NanaZip.Build.Tasks.csproj
-        git commit -a -m "Update the precompiled build tools."
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        git diff --quiet --exit-code
+        switch ($LASTEXITCODE) {
+          0 { Write-Host "The precompiled build tools are already up to date." }
+          1 {
+            git commit -a -m "Update the precompiled build tools."
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          default { exit $LASTEXITCODE }
+        }
     - name: Push changes to the repository
       run: |
         git checkout -b unstaged/update-precompiled-build-tools
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         git push origin unstaged/update-precompiled-build-tools --force
-        
