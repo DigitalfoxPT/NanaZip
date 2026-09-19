@@ -1,12 +1,16 @@
-﻿name: Build Binaries
+name: Build Binaries
 
 on:
   push:
     paths-ignore:
+      - '.github/scripts/**'
+      - '.github/workflows/SyncStableRelease.yml'
       - 'Documents/**'
       - '**/*.md'
   pull_request:
     paths-ignore:
+      - '.github/scripts/**'
+      - '.github/workflows/SyncStableRelease.yml'
       - 'Documents/**'
       - '**/*.md'
 

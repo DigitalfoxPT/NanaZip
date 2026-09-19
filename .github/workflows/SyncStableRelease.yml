@@ -1,0 +1,178 @@
+name: Sync Stable Release
+
+on:
+  schedule:
+    - cron: '17 8 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/SyncStableRelease.yml'
+      - '.github/scripts/sync_stable.py'
+      - '.github/scripts/test_sync_stable.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nanazip-stable-release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.sync.outputs.build }}
+      version: ${{ steps.sync.outputs.version }}
+      sha: ${{ steps.sync.outputs.sha }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        path: automation
+    - name: Test release synchronization
+      run: python3 automation/.github/scripts/test_sync_stable.py
+    - uses: actions/checkout@v6
+      with:
+        ref: custom-7.0.1843.0
+        path: source
+        fetch-depth: 0
+    - name: Check official stable release and prepare custom source
+      id: sync
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: python3 automation/.github/scripts/sync_stable.py source
+
+  build:
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      POWERSHELL_TELEMETRY_OPTOUT: 1
+      RELEASE_VERSION: ${{ needs.check.outputs.version }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ needs.check.outputs.sha }}
+        submodules: recursive
+    - uses: microsoft/setup-msbuild@v3
+    - name: Clear local NuGet cache (workaround for failed restores on windows-latest)
+      run: dotnet nuget locals all --clear
+    - name: Build
+      run: MSBuild -binaryLogger:Output\BuildAllTargets.binlog -m BuildAllTargets.proj
+    - name: Create signed installer
+      timeout-minutes: 10
+      shell: powershell
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        [xml]$Manifest = Get-Content -LiteralPath 'NanaZipPackage\Package.appxmanifest'
+        $Version = $Manifest.Package.Identity.Version
+        if ($Version -ne $env:RELEASE_VERSION -or $Manifest.Package.Identity.Name -ne 'BrunoFaria.NanaZip' -or $Manifest.Package.Identity.Publisher -ne 'CN=Bruno Faria') {
+          throw 'The generated manifest does not match the stable custom package identity and version.'
+        }
+        if ($Manifest.Package.Properties.DisplayName -ne 'NanaZip') {
+          throw 'The generated manifest is not using stable NanaZip branding.'
+        }
+        $Bundles = @(Get-ChildItem -LiteralPath 'Output\Binaries\AppPackages' -Recurse -Filter '*.msixbundle' |
+          Where-Object { $_.Name -notmatch '_Debug' } |
+          Where-Object { $_.Name.Contains($env:RELEASE_VERSION) })
+        if ($Bundles.Count -ne 1) {
+          throw "Expected exactly one NanaZip $env:RELEASE_VERSION release bundle, found $($Bundles.Count)."
+        }
+        $Bundle = $Bundles[0]
+        Write-Host "Selected release bundle: $($Bundle.FullName)"
+
+        $InstallerPath = Join-Path $PWD 'Output\NanaZipInstaller'
+        New-Item -ItemType Directory -Path $InstallerPath -Force | Out-Null
+
+        $Certificate = New-SelfSignedCertificate `
+          -Type Custom `
+          -KeyUsage DigitalSignature `
+          -CertStoreLocation 'Cert:\CurrentUser\My' `
+          -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}') `
+          -Subject 'CN=Bruno Faria' `
+          -FriendlyName 'NanaZip Package Signing - Bruno Faria' `
+          -KeyExportPolicy Exportable `
+          -HashAlgorithm SHA256 `
+          -NotAfter (Get-Date).AddYears(5)
+
+        $PasswordText = [Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N')
+        $Password = ConvertTo-SecureString -String $PasswordText -Force -AsPlainText
+        $PfxPath = Join-Path $env:RUNNER_TEMP 'NanaZip.pfx'
+        $CerPath = Join-Path $InstallerPath 'NanaZip.cer'
+        Export-PfxCertificate -Cert $Certificate -FilePath $PfxPath -Password $Password | Out-Null
+        Export-Certificate -Cert $Certificate -FilePath $CerPath | Out-Null
+        Import-Certificate `
+          -FilePath $CerPath `
+          -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
+
+        $SignedBundle = Join-Path $InstallerPath "NanaZip_$Version.msixbundle"
+        Copy-Item -LiteralPath $Bundle.FullName -Destination $SignedBundle
+
+        $SignTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter 'signtool.exe' |
+          Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+          Sort-Object FullName -Descending |
+          Select-Object -First 1
+        if (-not $SignTool) {
+          throw 'SignTool was not found in the Windows SDK.'
+        }
+
+        $SignToolPath = $SignTool.FullName
+        & $SignToolPath sign /fd SHA256 /f $PfxPath /p $PasswordText $SignedBundle
+        if ($LASTEXITCODE -ne 0) {
+          throw "SignTool failed with exit code $LASTEXITCODE."
+        }
+        if ((Get-Item -LiteralPath $SignedBundle).Length -eq 0) {
+          throw 'SignTool produced an empty MSIX bundle.'
+        }
+
+        Copy-Item -LiteralPath 'Installer\Install-NanaZip.ps1' -Destination $InstallerPath
+        Copy-Item -LiteralPath 'Installer\Install.cmd' -Destination $InstallerPath
+        Copy-Item -LiteralPath 'Installer\Uninstall-NanaZip.ps1' -Destination $InstallerPath
+        Copy-Item -LiteralPath 'Installer\Uninstall.cmd' -Destination $InstallerPath
+        Copy-Item -LiteralPath 'Installer\README.txt' -Destination $InstallerPath
+
+        Remove-Item -LiteralPath $PfxPath -Force
+        Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($Certificate.Thumbprint)" -Force
+        Remove-Item -LiteralPath "Cert:\CurrentUser\TrustedPeople\$($Certificate.Thumbprint)" -Force
+    - name: Upload signed installer
+      uses: actions/upload-artifact@v7
+      with:
+        name: NanaZip_Signed_Installer
+        path: Output/NanaZipInstaller
+    - name: Publish stable release
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_SHA: ${{ needs.check.outputs.sha }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $Version = $env:RELEASE_VERSION
+        $Tag = "v$Version-bf1"
+        $Archive = "Output/NanaZip_${Version}_Installer.zip"
+        Compress-Archive -Path 'Output/NanaZipInstaller/*' -DestinationPath $Archive
+        $Hash = (Get-FileHash $Archive -Algorithm SHA256).Hash.ToLowerInvariant()
+        "$Hash  $([IO.Path]::GetFileName($Archive))" | Set-Content Output/SHA256SUMS.txt -Encoding ascii
+        $Notes = "Installer/ReleaseNotes-$Version.md"
+        $Existing = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$Tag" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+          $Release = $Existing | ConvertFrom-Json
+          if (-not $Release.draft) { throw "Release $Tag is already published; refusing to replace it." }
+          gh release edit $Tag --repo $env:GITHUB_REPOSITORY --notes-file $Notes
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot update draft release.' }
+        } else {
+          gh release create $Tag --repo $env:GITHUB_REPOSITORY --target $env:RELEASE_SHA --title "NanaZip $Version" --notes-file $Notes --draft
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot create draft release.' }
+        }
+        gh release upload $Tag $Archive Output/SHA256SUMS.txt --repo $env:GITHUB_REPOSITORY --clobber
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot upload release assets; draft remains unpublished.' }
+        gh release edit $Tag --repo $env:GITHUB_REPOSITORY --draft=false --prerelease=false --latest
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot publish stable release.' }
+    - name: Upload build log after failure
+      if: failure()
+      uses: actions/upload-artifact@v7
+      with:
+        name: NanaZip_Stable_BuildLog
+        path: Output/BuildAllTargets.binlog
+        if-no-files-found: ignore
