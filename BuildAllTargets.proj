@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project 
   DefaultTargets="RefreshVersion;Restore;Build;Packaging"
   xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
@@ -17,8 +17,8 @@
     AssemblyFile="$(MSBuildThisFileDirectory)NanaZip.Project\NanaZip.Build.Tasks.dll"/>
   <Target Name="RefreshVersion">
     <PropertyGroup>
-      <NanaZipBuildNumberDate>2026-09-06</NanaZipBuildNumberDate>
-      <MileProjectVersion>7.0.1832.0</MileProjectVersion>
+      <NanaZipBuildNumberDate>2026-09-17</NanaZipBuildNumberDate>
+      <MileProjectVersion>7.0.1843.0</MileProjectVersion>
     </PropertyGroup>
     <RefreshProjectBuildNumberDate
       FilePath="$(MSBuildThisFileDirectory)NanaZip.Project\NanaZip.Project.Version.props"
