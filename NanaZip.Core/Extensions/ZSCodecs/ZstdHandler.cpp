@@ -11,8 +11,11 @@
 #include "../../SevenZip/CPP/7zip/Common/StreamUtils.h"
 
 #include "ZstdDecoder.h"
-#include "ZstdEncoder.h"
+// **************** NanaZip Modification Start ****************
+// #include "ZstdEncoder.h"
+#include "ZstdEncoder.hpp"
 #include "../../SevenZip/CPP/7zip/Compress/CopyCoder.h"
+// **************** NanaZip Modification End ****************
 
 #include "../../SevenZip/CPP/7zip/Archive/Common/DummyOutStream.h"
 #include "../../SevenZip/CPP/7zip/Archive/Common/HandlerOut.h"
@@ -32,7 +35,6 @@ Z7_CLASS_IMP_CHandler_IInArchive_3(
 
   bool _isArc;
   bool _dataAfterEnd;
-  bool _needMoreInput;
 
   bool _packSize_Defined;
   bool _unpackSize_Defined;
@@ -146,7 +148,6 @@ Z7_COM7F_IMF(CHandler::Close())
 {
   _isArc = false;
   _dataAfterEnd = false;
-  _needMoreInput = false;
 
   _packSize_Defined = false;
   _unpackSize_Defined = false;
@@ -214,7 +215,7 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
     UInt64 streamSize = decoderSpec->GetInputProcessedSize();
 
     if (result != S_FALSE && result != S_OK)
-      return result;
+      break;
 
     if (unpackedSize == 0)
       break;
@@ -226,30 +227,38 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
       break;
     }
 
-    if (packSize > streamSize)
-      return E_FAIL;
+    if (packSize > streamSize) {
+      result = E_FAIL;
+      break;
+    }
 
     if (result != S_OK)
       break;
   }
 
-  decoderSpec->ReleaseInStream();
-  outStream.Release();
-
   if (!_isArc)
     opRes = NExtract::NOperationResult::kIsNotArc;
-  else if (_needMoreInput)
+  // **************** NanaZip Modification Start ****************
+  //else if (result == ERROR_HANDLE_EOF)
+  else if (result == HRESULT_FROM_WIN32(ERROR_HANDLE_EOF))
+  // **************** NanaZip Modification End ****************
     opRes = NExtract::NOperationResult::kUnexpectedEnd;
   else if (_dataAfterEnd)
     opRes = NExtract::NOperationResult::kDataAfterEnd;
-  else if (result == S_FALSE)
+  // **************** NanaZip Modification Start ****************
+  //else if (result == ERROR_INVALID_DATA || result == S_FALSE)
+  else if (result == HRESULT_FROM_WIN32(ERROR_INVALID_DATA) || result == S_FALSE)
+  // **************** NanaZip Modification End ****************
     opRes = NExtract::NOperationResult::kDataError;
   else if (result == S_OK) {
     _unpackSize = outStreamSpec->GetSize();
     _unpackSize_Defined = true;
     opRes = NExtract::NOperationResult::kOK;
   } else
-    return result;
+    opRes = result;
+
+  decoderSpec->ReleaseInStream();
+  outStream.Release();
 
   }
 
@@ -270,11 +279,27 @@ static HRESULT UpdateArchive(
   CLocalProgress *localProgressSpec = new CLocalProgress;
   CMyComPtr<ICompressProgressInfo> localProgress = localProgressSpec;
   localProgressSpec->Init(updateCallback, true);
+  // **************** NanaZip Modification Start ****************
+  #if 0 // ******** Annotated 7-Zip ZS Source Code snippet Start ********
   NCompress::NZSTD::CEncoder *encoderSpec = new NCompress::NZSTD::CEncoder;
   // by zstd archive type store dictID and checksum (similar to zstd client)
   encoderSpec->dictIDFlag = 1;
   encoderSpec->checksumFlag = 1;
   encoderSpec->unpackSize = unpackSize;
+  #endif // ******** Annotated 7-Zip ZS Source Code snippet End ********
+  NanaZip::Core::Extensions::ZstdEncoder *encoderSpec =
+    new NanaZip::Core::Extensions::ZstdEncoder;
+
+  CMyComPtr<ICompressSetCoderPropertiesOpt> CoderPropertiesOpt = encoderSpec;
+  PROPID UnpackSizePropId = NCoderPropID::kExpectedDataSize;
+  PROPVARIANT UnpackSizeProp;
+  UnpackSizeProp.vt = VT_UI8;
+  UnpackSizeProp.uhVal.QuadPart = unpackSize;
+  RINOK(CoderPropertiesOpt->SetCoderPropertiesOpt(
+    &UnpackSizePropId,
+    &UnpackSizeProp,
+    1));
+  // **************** NanaZip Modification End ****************
   CMyComPtr<ICompressCoder> encoder = encoderSpec;
   RINOK(props.SetCoderProps(encoderSpec, NULL));
   RINOK(encoder->Code(fileInStream, outStream, NULL, NULL, localProgress));

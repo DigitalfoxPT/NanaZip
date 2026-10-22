@@ -49,7 +49,7 @@ Kenji Mouri
 
 ## Features
 
-- Inherit all features from 7-Zip 26.03, [7-Zip ZS] and [7-Zip NSIS].
+- Inherit all features from 7-Zip 26.04, [7-Zip ZS] and [7-Zip NSIS].
 - Support the dark mode for all GUI components.
 - Support the Mica effect on the main window. You will enjoy the full window
   immersive Mica for all GUI components if you are using dark mode with HDR
@@ -69,14 +69,25 @@ Kenji Mouri
   - MD2 (Inherit from 7-Zip ZS, but reimplemented with Windows CNG API)
   - MD4 (Inherit from 7-Zip ZS, but reimplemented with Windows CNG API)
   - MD5 (Inherit from 7-Zip, but reimplemented with Windows CNG API)
-  - SHA-1 (Inherit from 7-Zip, but reimplemented with Windows CNG API)
-  - SHA-256 (Inherit from 7-Zip, but reimplemented with Windows CNG API)
-  - SHA-384 (Inherit from 7-Zip, but reimplemented with Windows CNG API)
-  - SHA-512 (Inherit from 7-Zip, but reimplemented with Windows CNG API)
+  - SHA-1 (Inherit from 7-Zip)
+  - SHA-256 (Inherit from 7-Zip)
+  - SHA512-224 (Inherit from 7-Zip)
+  - SHA512-256 (Inherit from 7-Zip)
+  - SHA-384 (Inherit from 7-Zip)
+  - SHA-512 (Inherit from 7-Zip)
+  - SHA3-224 (Inherit from 7-Zip)
+  - SHA3-256 (Inherit from 7-Zip)
+  - SHA3-384 (Inherit from 7-Zip)
+  - SHA3-512 (Inherit from 7-Zip)
+  - SHAKE128 (Inherit from 7-Zip)
+  - SHAKE256 (Inherit from 7-Zip)
+  - SHAKE128-256 (Inherit from 7-Zip)
+  - SHAKE256-512 (Inherit from 7-Zip)
   - ED2K (Implemented with Windows CNG API)
-  - AICH (Implemented with RHash)
+  - AICH (Implemented with Windows CNG API and inlined RHash)
+  - BTIH (Implemented with Windows CNG API and inlined RHash)
+  - SHA-224 (Implemented with inlined RHash)
   - BLAKE2b (Implemented with RHash)
-  - BTIH (Implemented with RHash)
   - EDON-R 224 (Implemented with RHash)
   - EDON-R 256 (Implemented with RHash)
   - EDON-R 384 (Implemented with RHash)
@@ -87,11 +98,6 @@ Kenji Mouri
   - GOST R 34.11-2012 512 (Implemented with RHash)
   - HAS-160 (Implemented with RHash)
   - RIPEMD-160 (Implemented with RHash)
-  - SHA-224 (Implemented with RHash)
-  - SHA3-224 (Inherit from 7-Zip, but reimplemented with RHash)
-  - SHA3-256 (Inherit from 7-Zip, but reimplemented with RHash)
-  - SHA3-384 (Inherit from 7-Zip, but reimplemented with RHash)
-  - SHA3-512 (Inherit from 7-Zip, but reimplemented with RHash)
   - Snefru-128 (Implemented with RHash)
   - Snefru-256 (Implemented with RHash)
   - Tiger (Implemented with RHash)
@@ -107,12 +113,16 @@ Kenji Mouri
   support, Encoder can be considered as compression support, and Archiver can be
   considered as archive format support)
   - Brotli (Decoder & Encoder & Archiver, inherited from 7-Zip ZS)
-  - Fast-LZMA2 (Encoder, inherited from 7-Zip ZS)
   - Lizard (Decoder & Encoder & Archiver, inherited from 7-Zip ZS)
+  - LZ (Archiver, inherited from 7-Zip ZS)
   - LZ4 (Decoder & Encoder & Archiver, inherited from 7-Zip ZS)
-  - LZ5 (Decoder & Encoder & Archiver, Both inherited from 7-Zip ZS)
-  - Zstandard (Decoder inherited from 7-Zip, Encoder & Archiver inherited from
-    7-Zip ZS)
+  - LZ5 (Decoder & Encoder & Archiver, inherited from 7-Zip ZS)
+  - Zstandard (Decoder & Encoder & Archiver, inherited from 7-Zip ZS)
+  - XChaCha20 (Decoder & Encoder, inherited from 7-Zip ZS)
+  - XChaCha20-Poly1305 (Decoder & Encoder, inherited from 7-Zip ZS)
+  - AES+XChaCha20-Poly1305 (Decoder & Encoder, inherited from 7-Zip ZS)
+  - AES+XChaCha20+Ascon (Decoder & Encoder, inherited from 7-Zip ZS)
+  - XChaCha20+AES+AEGIS (Decoder & Encoder, inherited from 7-Zip ZS)
   - NSIS (Decoder's NSIS script decompiling support, inherited from 7-Zip NSIS)
   - UFS/UFS2 file system image (Archiver, read-only, both big and little endian)
   - .NET Single File Application bundle (Archiver, read-only, extracting
@@ -331,14 +341,7 @@ If you open the Command Prompt as Administrator, you can execute:
 - If you can't find NanaZip in the context menu, please restart all File
   Explorer processes via Task Manager.
 - Due to the design of MSIX, drives' context menu in Explorer only show in
-  Windows 11(22H2)+.
-- Due to the issues in Desktop Bridge file system virtualization, you are
-  unable to use NanaZip in the Safe Mode of Windows.
-- Due to the policy from Microsoft Store, NanaZip is unable to disable Desktop
-  Bridge file system virtualization, so the file operations in
-  `%UserProfile%/AppData` will be redirected in Windows 10, and file operations
-  in directories other than `Local`, `LocalLow` and `Roaming` in
-  `%UserProfile%/AppData` will still be redirected in Windows 11.
+  Windows 11, version 22H2 or later.
 - Due to the Microsoft Store limitations, NanaZip 1.2 and later won't support
   languages not mentioned in
   https://docs.microsoft.com/en-us/windows/uwp/publish/supported-languages.
