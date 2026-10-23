@@ -55,6 +55,9 @@ jobs:
       with:
         ref: ${{ needs.check.outputs.sha }}
         submodules: recursive
+    - name: Test installer on Windows PowerShell 5.1
+      shell: powershell
+      run: ./Installer/tests/Test-Installer.ps1
     - uses: microsoft/setup-msbuild@v3
     - name: Clear local NuGet cache (workaround for failed restores on windows-latest)
       run: dotnet nuget locals all --clear

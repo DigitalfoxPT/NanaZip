@@ -1,0 +1,95 @@
+name: Publish Installer Revision
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/PublishInstallerRevision.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nanazip-stable-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_TAG: v7.0.1873.0-bf1
+      RELEASE_TAG: v7.0.1873.0-bf2
+      SOURCE_SHA: ab46da18720956214ca7d88a05b789bb24d71eb2
+      ARCHIVE_NAME: NanaZip_7.0.1873.0_Installer.zip
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ab46da18720956214ca7d88a05b789bb24d71eb2
+    - name: Test installer on Windows PowerShell 5.1
+      shell: powershell
+      run: ./Installer/tests/Test-Installer.ps1
+    - name: Repackage existing signed bundle
+      shell: powershell
+      run: |
+        $ErrorActionPreference = 'Stop'
+        New-Item -ItemType Directory -Path 'revision/source', 'revision/installer', 'revision/output' -Force | Out-Null
+        gh release download $env:SOURCE_TAG --repo $env:GITHUB_REPOSITORY --pattern $env:ARCHIVE_NAME --pattern SHA256SUMS.txt --dir revision/source
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot download source release assets.' }
+        $OriginalZip = Join-Path 'revision/source' $env:ARCHIVE_NAME
+        $OriginalHash = (Get-FileHash -LiteralPath $OriginalZip -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($OriginalHash -ne '347cc6b00eb2b67fb8d1992caf10e91c81845227cca1ed019baa1eb9a0586dae') {
+          throw 'Source ZIP does not match the reviewed release asset.'
+        }
+        $ExpectedChecksum = "$OriginalHash  $env:ARCHIVE_NAME"
+        if ((Get-Content -LiteralPath 'revision/source/SHA256SUMS.txt' -Raw).Trim() -ne $ExpectedChecksum) {
+          throw 'Source SHA256SUMS.txt does not match the source ZIP.'
+        }
+        Expand-Archive -LiteralPath $OriginalZip -DestinationPath revision/installer
+        $BundlePath = 'revision/installer/NanaZip_7.0.1873.0.msixbundle'
+        $CertificatePath = 'revision/installer/NanaZip.cer'
+        $BundleHash = (Get-FileHash -LiteralPath $BundlePath -Algorithm SHA256).Hash
+        $CertificateHash = (Get-FileHash -LiteralPath $CertificatePath -Algorithm SHA256).Hash
+        Copy-Item -LiteralPath 'Installer/Install-NanaZip.ps1', 'Installer/README.txt' -Destination revision/installer -Force
+        $ScriptPath = Join-Path $PWD 'revision/installer/Install-NanaZip.ps1'
+        $ScriptText = [IO.File]::ReadAllText($ScriptPath)
+        [IO.File]::WriteAllText($ScriptPath, $ScriptText, [Text.UTF8Encoding]::new($true))
+        $Tokens = $null
+        $ParseErrors = $null
+        $null = [Management.Automation.Language.Parser]::ParseFile($ScriptPath, [ref]$Tokens, [ref]$ParseErrors)
+        if ($ParseErrors.Count) { throw ($ParseErrors | Out-String) }
+        $Archive = Join-Path 'revision/output' $env:ARCHIVE_NAME
+        Compress-Archive -Path 'revision/installer/*' -DestinationPath $Archive
+        Expand-Archive -LiteralPath $Archive -DestinationPath revision/verify
+        if ((Get-FileHash -LiteralPath 'revision/verify/NanaZip_7.0.1873.0.msixbundle').Hash -ne $BundleHash) {
+          throw 'Signed bundle changed during repackaging.'
+        }
+        if ((Get-FileHash -LiteralPath 'revision/verify/NanaZip.cer').Hash -ne $CertificateHash) {
+          throw 'Signing certificate changed during repackaging.'
+        }
+        $SourceScriptHash = (Get-FileHash -LiteralPath $ScriptPath).Hash
+        if ((Get-FileHash -LiteralPath 'revision/verify/Install-NanaZip.ps1').Hash -ne $SourceScriptHash) {
+          throw 'Installer script did not survive the ZIP round trip.'
+        }
+        $Hash = (Get-FileHash -LiteralPath $Archive -Algorithm SHA256).Hash.ToLowerInvariant()
+        "$Hash  $env:ARCHIVE_NAME" | Set-Content -LiteralPath 'revision/output/SHA256SUMS.txt' -Encoding ascii
+        Write-Host "Verified installer archive: $Hash"
+    - name: Publish revised installer
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $ExistingJson = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+          $Existing = $ExistingJson | ConvertFrom-Json
+          if (-not $Existing.draft) { throw 'Revised release is already published; refusing to replace it.' }
+        } else {
+          gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --target $env:SOURCE_SHA --title 'NanaZip 7.0.1873.0 - instalador corrigido (bf2)' --notes-file Installer/ReleaseNotes-7.0.1873.0-bf2.md --draft
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot create revised draft release.' }
+        }
+        $Archive = Join-Path 'revision/output' $env:ARCHIVE_NAME
+        gh release upload $env:RELEASE_TAG $Archive revision/output/SHA256SUMS.txt --repo $env:GITHUB_REPOSITORY --clobber
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot upload revised release assets.' }
+        gh release edit $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --draft=false --prerelease=false --latest
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot publish revised release.' }
