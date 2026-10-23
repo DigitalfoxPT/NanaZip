@@ -12,7 +12,9 @@ INSTALAÇÃO
 2. Execute Install.cmd.
 3. Aceite o pedido de Controlo de Conta de Utilizador.
 4. O instalador adiciona o certificado público a Pessoas Fidedignas e instala o MSIXBundle.
-5. Se existir a instalação personalizada anterior, o instalador remove-a automaticamente.
+5. O instalador fecha automaticamente os processos desta versão personalizada do NanaZip antes de atualizar.
+   Termine previamente as operações de compressão ou extração: poderão ser interrompidas.
+6. Se existir a instalação personalizada anterior, o instalador remove-a automaticamente.
 
 O pacote possui a identidade própria BrunoFaria.NanaZip e pode coexistir com o NanaZip oficial.
 Caso mantenha ambos instalados, poderão aparecer duas entradas NanaZip no menu de contexto.
