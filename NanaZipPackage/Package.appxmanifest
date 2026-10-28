@@ -21,7 +21,7 @@
   <Identity
     Name="BrunoFaria.NanaZip"
     Publisher="CN=Bruno Faria"
-    Version="7.0.1873.0" />
+    Version="7.0.1882.0" />
 
   <Properties>
     <DisplayName>NanaZip</DisplayName>

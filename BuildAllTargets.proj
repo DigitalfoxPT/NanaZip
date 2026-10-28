@@ -17,8 +17,8 @@
     AssemblyFile="$(MSBuildThisFileDirectory)NanaZip.Project\NanaZip.Build.Tasks.dll" />
   <Target Name="RefreshVersion">
     <PropertyGroup>
-      <NanaZipBuildNumberDate>2026-10-17</NanaZipBuildNumberDate>
-      <MileProjectVersion>7.0.1873.0</MileProjectVersion>
+      <NanaZipBuildNumberDate>2026-10-26</NanaZipBuildNumberDate>
+      <MileProjectVersion>7.0.1882.0</MileProjectVersion>
     </PropertyGroup>
     <RefreshProjectBuildNumberDate
       FilePath="$(MSBuildThisFileDirectory)NanaZip.Project\NanaZip.Project.Version.props"
